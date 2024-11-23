@@ -1,0 +1,46 @@
+name: Get Latest Commit SHA
+
+on:
+  workflow_call:
+    inputs:
+      repo:
+        description: 'The repository to fetch the commit SHA from (e.g., owner/repo).'
+        required: true
+        type: string
+      branch:
+        description: 'The branch to fetch the latest commit SHA from.'
+        required: true
+        type: string
+        default: 'master'
+    outputs:
+      commit_sha:
+        description: 'The latest commit SHA.'
+        value: ${{ jobs.get-commit.outputs.commit_sha }}
+    secrets:
+      token:
+        description: 'GitHub token for authentication.'
+
+jobs:
+  get-commit:
+    runs-on: ubuntu-latest
+    outputs:
+      commit_sha: ${{ steps.get-sha.outputs.sha }}
+
+    steps:
+      - name: Get latest commit SHA
+        id: get-sha
+        run: |
+          SHA=$(gh api \
+            repos/${{ inputs.repo }}/commits/${{ inputs.branch }} \
+            --jq '.sha')
+          echo "sha=$SHA" >> $GITHUB_OUTPUT
+          echo "Latest commit SHA: $SHA"
+        env:
+          GH_TOKEN: ${{ secrets.token }}
+
+      - name: Verify SHA was retrieved
+        run: |
+          if [ -z "${{ steps.get-sha.outputs.sha }}" ]; then
+            echo "Failed to retrieve SHA"
+            exit 1
+          fi

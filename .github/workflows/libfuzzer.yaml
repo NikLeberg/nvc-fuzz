@@ -1,0 +1,71 @@
+name: Fuzz NVC with LibFuzzer
+
+on:
+  workflow_dispatch:
+
+jobs:
+  get-commit:
+    uses: ./.github/workflows/get-commit.yaml
+    with:
+      repo: 'nickg/nvc'
+      branch: 'master'
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}
+
+  fuzz:
+    needs: get-commit
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/nikleberg/nvc-fuzz:libfuzzer-staging
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure and build
+        run: |
+          mkdir -p build
+          cd build
+          cmake .. -GNinja \
+            -DNVC_COMMIT_SHA=${{ needs.get-commit.outputs.commit_sha }}
+          cmake --build .
+
+      - name: Get current timestamp
+        id: timestamp
+        run: |
+          TIMESTAMP=$(date +'%Y%m%d-%H%M')
+          echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
+          echo "Current timestamp: $TIMESTAMP"
+
+      - name: Get cached Corpus
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            corpus
+          key: libfuzzer-corpus-${{ steps.timestamp.outputs.timestamp }}
+          restore-keys: libfuzzer-corpus-
+
+      - name: Fuzz
+        working-directory: build
+        run: |
+          mkdir -p ../corpus
+          mv ../corpus ../corpus_old
+          mkdir -p ../corpus
+          ./fuzzer \
+            ../corpus ../corpus_old ../seed \
+            -max_total_time=3600 || true
+
+      - name: Save Corpus
+        uses: actions/cache/save@v4
+        if: ${{ always() }}
+        with:
+          path: |
+            corpus
+          key: libfuzzer-corpus-${{ steps.timestamp.outputs.timestamp }}
+
+      - name: Archive build artifacts
+        uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: libfuzzer-output
+          path: build
