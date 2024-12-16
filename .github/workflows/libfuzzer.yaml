@@ -5,6 +5,7 @@ on:
 
 jobs:
   get-commit:
+    name: Get latest commit SHA
     uses: ./.github/workflows/get-commit.yaml
     with:
       repo: 'nickg/nvc'
@@ -13,6 +14,7 @@ jobs:
       token: ${{ secrets.GITHUB_TOKEN }}
 
   fuzz:
+    name: Fuzz with LibFuzzer
     needs: get-commit
     runs-on: ubuntu-latest
     container:

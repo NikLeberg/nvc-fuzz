@@ -25,10 +25,10 @@ ExternalProject_Add(
   nvc
   GIT_REPOSITORY https://github.com/nickg/nvc.git
   GIT_TAG ${NVC_COMMIT_SHA}
-  PATCH_COMMAND git apply ${CMAKE_CURRENT_LIST_DIR}/abort.patch || true
+  PATCH_COMMAND git apply ${CMAKE_CURRENT_LIST_DIR}/fatal_exit.patch || true
   CONFIGURE_HANDLED_BY_BUILD true
   CONFIGURE_COMMAND
-    <SOURCE_DIR>/configure --disable-llvm --disable-lto
+    <SOURCE_DIR>/configure --disable-llvm --disable-lto --enable-debug
       "CC=${CMAKE_C_COMPILER}"
       "CFLAGS=-fsanitize=fuzzer-no-link ${CMAKE_C_FLAGS_${BUILD_TYPE_UPPER}} ${CMAKE_C_FLAGS}"
       "LDFLAGS=-fsanitize=fuzzer-no-link ${CMAKE_EXE_LINKER_FLAGS}"

@@ -1,0 +1,25 @@
+diff --git a/src/util.c b/src/util.c
+index 3f89e5b1..28e0a27e 100644
+--- a/src/util.c
++++ b/src/util.c
+@@ -522,9 +522,9 @@ void fatal_exit(int status)
+    async_barrier();
+ 
+    if (atomic_load(&crashing) != SIG_ATOMIC_MAX)
+-      _exit(status);   // Exit during crash
++      __builtin_trap();   // Exit during crash
+    else if (!thread_attached() || thread_id() != 0)
+-      _exit(status);
++      pthread_exit(NULL);
+    else
+       exit(status);
+ }
+@@ -698,6 +698,8 @@ static void trace_one_frame(uintptr_t pc, const char *module,
+ __attribute__((noinline))
+ void show_stacktrace(void)
+ {
++   atomic_cas(&crashing, SIG_ATOMIC_MAX, thread_id());
++
+    debug_info_t *di = debug_capture();
+ 
+    const int nframes = debug_count_frames(di);
