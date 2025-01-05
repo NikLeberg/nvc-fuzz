@@ -40,6 +40,7 @@ void fixture_setup(void) {
     intern_strings();
     mspace_stack_limit(MSPACE_CURRENT_FRAME);
     diag_set_consumer(diag_consumer, NULL);
+    srand(0);
 
     opt_set_int(OPT_UNIT_TEST, 1);
     opt_set_int(OPT_IGNORE_TIME, 1);
