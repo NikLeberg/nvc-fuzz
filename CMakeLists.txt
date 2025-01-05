@@ -104,3 +104,16 @@ find_library(MATH_LIBRARY m)
 if(MATH_LIBRARY)
   target_link_libraries(fuzzer PUBLIC ${MATH_LIBRARY})
 endif()
+
+add_custom_target(run
+  COMMAND ${CMAKE_COMMAND} -E make_directory ../corpus
+  COMMAND ${CMAKE_COMMAND} -E rm -rf ../corpus_old
+  COMMAND ${CMAKE_COMMAND} -E rename ../corpus ../corpus_old
+  COMMAND ./fuzzer
+    -only_ascii=1 -reload=0 -max_total_time=3600
+    -create_missing_dirs=1 -artifact_prefix=../crash/
+    ../corpus ../corpus_old ../seed 2>&1 | tee run.log
+  DEPENDS fuzzer
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  USES_TERMINAL
+)
