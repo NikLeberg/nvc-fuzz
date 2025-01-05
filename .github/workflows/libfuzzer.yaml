@@ -26,11 +26,9 @@ jobs:
 
       - name: Configure and build
         run: |
-          mkdir -p build
-          cd build
-          cmake .. -GNinja \
+          cmake -S . -B build -GNinja \
             -DNVC_COMMIT_SHA=${{ needs.get-commit.outputs.commit_sha }}
-          cmake --build .
+          cmake --build build
 
       - name: Get current timestamp
         id: timestamp
@@ -48,14 +46,8 @@ jobs:
           restore-keys: libfuzzer-corpus-
 
       - name: Fuzz
-        working-directory: build
         run: |
-          mkdir -p ../corpus
-          mv ../corpus ../corpus_old
-          mkdir -p ../corpus
-          ./fuzzer \
-            ../corpus ../corpus_old ../seed \
-            -max_total_time=3600 || true
+          cmake --build build --target run || true
 
       - name: Save Corpus
         uses: actions/cache/save@v4
