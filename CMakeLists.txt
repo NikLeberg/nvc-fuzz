@@ -117,3 +117,17 @@ add_custom_target(run
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   USES_TERMINAL
 )
+
+add_custom_target(min
+  COMMAND echo `ls ../crash -t | head -1`>orig.name
+  COMMAND ./fuzzer -minimize_crash=1 -only_ascii=1 ../crash/`cat orig.name`
+    2>&1 | tee min.log
+  COMMAND echo `grep -o "\.\/minimized-from-[0-9a-f]* " min.log | tail -2 | head -1`>min.name
+  COMMAND mv `cat min.name` minimized-`cat orig.name`
+  COMMAND echo Done minimizing crash ../crash/`cat orig.name`
+  COMMAND echo Minimzed crash in ./build/minimized-`cat orig.name`
+  COMMAND rm -f minimized-from-* orig.name min.name
+  DEPENDS fuzzer
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  USES_TERMINAL
+)
