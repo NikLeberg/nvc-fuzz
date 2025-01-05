@@ -1,0 +1,85 @@
+From 41a89af7198619c772b71988a847d1f277cce8b1 Mon Sep 17 00:00:00 2001
+From: NikLeberg <niklaus.leuenb+github@gmail.com>
+Date: Mon, 9 Dec 2024 04:54:00 +0000
+Subject: [PATCH] Show stack-dedup-token for crashes in debug build.
+
+---
+ src/debug.c | 27 +++++++++++++++++++++++++++
+ src/debug.h |  1 +
+ src/util.c  |  6 ++++++
+ 3 files changed, 34 insertions(+)
+
+diff --git a/src/debug.c b/src/debug.c
+index 8806af5e7..24dea4ff8 100644
+--- a/src/debug.c
++++ b/src/debug.c
+@@ -62,6 +62,7 @@
+ #endif
+ 
+ #define MAX_TRACE_DEPTH   25
++#define MAX_DEDUP_DEPTH   4
+ 
+ struct debug_info {
+    A(debug_frame_t*) frames;
+@@ -926,6 +927,32 @@ const debug_frame_t *debug_get_frame(debug_info_t *di, unsigned n)
+    return AGET(di->frames, n);
+ }
+ 
++char *debug_dedup(debug_info_t *di)
++{
++   const char *symbols[MAX_DEDUP_DEPTH] = {0};
++
++   int depth = 0;
++   size_t len = 0;
++   const int nframes = debug_count_frames(di);
++   for (int n = 1; n < nframes; n++) {
++      const debug_frame_t *f = debug_get_frame(di, n);
++      if (f->kind == FRAME_PROG && f->symbol != NULL
++          && depth < MAX_DEDUP_DEPTH) {
++         symbols[depth++] = f->symbol;
++         len += strlen(f->symbol);
++      }
++   }
++   len += 2 * (MAX_DEDUP_DEPTH - 1) + 1; // "--" between symbols + '\0'
++
++   char *tok = calloc(len, sizeof(char));
++   for (int n = 0; n < depth; n++) {
++      if (n != 0) strcat(tok, "--");
++      strcat(tok, symbols[n]);
++   }
++
++   return tok;
++}
++
+ void debug_add_unwinder(void *start, size_t len, debug_unwind_fn_t fn,
+                         void *context)
+ {
+diff --git a/src/debug.h b/src/debug.h
+index 0466f9ae0..baa7435a8 100644
+--- a/src/debug.h
++++ b/src/debug.h
+@@ -61,6 +61,7 @@ debug_info_t *debug_capture(void);
+ void debug_free(debug_info_t *di);
+ unsigned debug_count_frames(debug_info_t *di);
+ const debug_frame_t *debug_get_frame(debug_info_t *di, unsigned n);
++char *debug_dedup(debug_info_t *di);
+ 
+ void debug_add_unwinder(void *start, size_t len, debug_unwind_fn_t fn,
+                         void *context);
+diff --git a/src/util.c b/src/util.c
+index e0673698f..ea85e3331 100644
+--- a/src/util.c
++++ b/src/util.c
+@@ -713,6 +713,12 @@ void show_stacktrace(void)
+ 
+    }
+ 
++#ifdef DEBUG
++   char *dedup_tok = debug_dedup(di);
++   color_fprintf(stderr, "\n$!red$DEDUP_TOKEN: %s$$\n", dedup_tok);
++   free(dedup_tok);
++#endif
++
+    debug_free(di);
+ 
+ #if defined __linux__ && !defined HAVE_LIBDW && !defined HAVE_LIBDWARF
