@@ -25,10 +25,11 @@ ExternalProject_Add(
   nvc
   GIT_REPOSITORY https://github.com/nickg/nvc.git
   GIT_TAG ${NVC_COMMIT_SHA}
-  PATCH_COMMAND git apply
-    ${CMAKE_CURRENT_LIST_DIR}/fatal_exit.patch
-    ${CMAKE_CURRENT_LIST_DIR}/crash_hash.patch
-    || true
+  PATCH_COMMAND
+    ${CMAKE_COMMAND}
+      -DBIN=<BINARY_DIR> -DSRC=<SOURCE_DIR>
+      -DLST=${CMAKE_CURRENT_LIST_DIR}
+      -P ${CMAKE_CURRENT_LIST_DIR}/patch.cmake
   CONFIGURE_HANDLED_BY_BUILD true
   CONFIGURE_COMMAND
     <SOURCE_DIR>/configure --disable-llvm --disable-lto --enable-debug
